@@ -5,7 +5,11 @@ import java.util.*;
 
 public class Injection {
 
-    private static Queue<Class<?>> classQueue = new LinkedList<>();
+    private static class AutowiredNullException extends Throwable{
+        public AutowiredNullException(String content){
+            super(content);
+        }
+    }
 
     public static void scanAnnotation(String packageName){
         Set<Class<?>> classSet = ClassUtil.getClasses(packageName);
@@ -17,6 +21,7 @@ public class Injection {
     private static void parseAnnotation(Set<Class<?>> classSet){
         Set<Class<?>> notPassClassSet = new HashSet<>();
 
+        /* remove classes from classSet that do not meet the instantiation requirements */
         Iterator<Class<?>> classIterator = classSet.iterator();
         while (classIterator.hasNext()){
             Class<?> c = classIterator.next();
@@ -46,6 +51,7 @@ public class Injection {
             }
         }
 
+        /* instantiate classes */
         if(classSet != null && classSet.size() > 0){
             for(Class<?> c : classSet){
                 try {
@@ -55,6 +61,7 @@ public class Injection {
                     if(inject.value().trim().equals("")){
                         Class<?>[] interfaces = c.getInterfaces();
                         if(interfaces != null && interfaces.length == 1){
+                            /* if implement only one interface , use interface name as key */
                             key = firstWordToLowerCase(interfaces[0].getSimpleName());
                         } else {
                             key = firstWordToLowerCase(c.getSimpleName());
@@ -84,8 +91,16 @@ public class Injection {
                     e.printStackTrace();
                 }
             }
+        } else {
+            try {
+                throw new AutowiredNullException(String.format("inject failed with classes %s",notPassClassSet.toString()));
+            } catch (AutowiredNullException e) {
+                e.printStackTrace();
+                return;
+            }
         }
 
+        /* recursion for instantiate other classes */
         if(notPassClassSet != null && notPassClassSet.size() > 0){
             parseAnnotation(notPassClassSet);
         }
@@ -101,3 +116,5 @@ public class Injection {
     }
 
 }
+
+//throw new AutowiredNullException(String.format("inject %s failed , object is null ",fieldKey));
