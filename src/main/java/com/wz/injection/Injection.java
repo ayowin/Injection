@@ -116,5 +116,3 @@ public class Injection {
     }
 
 }
-
-//throw new AutowiredNullException(String.format("inject %s failed , object is null ",fieldKey));
